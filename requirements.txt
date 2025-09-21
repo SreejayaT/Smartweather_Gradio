@@ -1,0 +1,6 @@
+| Package                         | Purpose                             |
+| ------------------------------- | ----------------------------------- |
+| `gradio`                        | Interactive web UI                  |
+| `requests`                      | Make HTTP calls to weather API      |
+| `geopy`                         | Location lookup (if used)           |
+| `matplotlib`, `pandas`, `numpy` | Optional for plots or data handling |
