@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Weather Advisor — Place-based Weather & Forecasting</title>
+<meta name="description" content="Smart Weather Advisor: a place-based weather application combining Open-Meteo weather and air-quality data, rule-based advisory logic, and Prophet temperature forecasting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#101820;
+  --panel:#17232d;
+  --panel2:#1d2c37;
+  --line:rgba(255,255,255,.10);
+  --text:#edf2f0;
+  --muted:#9eabb0;
+  --accent:#72c7b7;
+  --accent-soft:rgba(114,199,183,.13);
+  --sky:#79a9d6;
+  --sky-soft:rgba(121,169,214,.13);
+  --warn:#f0b45c;
+  --radius:4px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+ margin:0;background:var(--ink);color:var(--text);
+ font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;
+ -webkit-font-smoothing:antialiased
+}
+::selection{background:var(--accent);color:#101820}
+a{color:inherit}
+h1,h2,h3{font-family:'Source Serif 4',Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+code,.mono{font-family:'IBM Plex Mono',monospace}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 32px}
+
+header.hero{
+ padding:94px 0 70px;border-bottom:1px solid var(--line);
+ background:
+ radial-gradient(ellipse 760px 390px at 82% -8%,rgba(114,199,183,.12),transparent 62%),
+ radial-gradient(ellipse 680px 360px at 5% 110%,rgba(121,169,214,.10),transparent 62%);
+}
+.kicker{font-size:14px;color:var(--muted);margin:0 0 26px}
+h1.title{font-size:clamp(36px,5.5vw,62px);line-height:1.06;max-width:14ch;color:#f5f7f5}
+h1.title em{font-style:normal;color:var(--accent)}
+.hero-sub{max-width:65ch;color:var(--muted);font-size:17px;margin:22px 0 0}
+.stat-row{display:flex;flex-wrap:wrap;gap:38px;margin-top:52px;padding-top:30px;border-top:1px solid var(--line)}
+.stat{min-width:145px}
+.stat .n{font-family:'Source Serif 4',serif;font-size:34px;font-weight:600;color:#f5f7f5}
+.stat .n.accent{color:var(--accent)}
+.stat .l{font-size:13px;color:var(--muted);margin-top:3px}
+
+section{padding:74px 0;border-bottom:1px solid var(--line)}
+.grid-2{display:grid;grid-template-columns:260px 1fr;gap:48px}
+.label-col h2{font-size:25px;line-height:1.2;max-width:12ch}
+.label-col .tag{color:var(--muted);font-size:13px;margin-top:10px}
+.content-col p{color:#cbd2d1;max-width:66ch;font-size:16px}
+.content-col p+p{margin-top:14px}
+
+.chip-groups{display:flex;flex-direction:column;gap:21px;margin-top:24px}
+.chip-group h3{font-family:'IBM Plex Sans';font-size:13px;font-weight:500;color:var(--muted);margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+ border:1px solid var(--line);background:var(--panel);color:#d9e0de;
+ padding:7px 12px;border-radius:var(--radius);font-size:13px;font-family:'IBM Plex Mono'
+}
+
+.steps{margin-top:4px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:18px;padding:20px 0;border-top:1px solid var(--line)}
+.step .idx{font-family:'Source Serif 4',serif;font-size:22px;color:var(--muted)}
+.step h3{font-family:'IBM Plex Sans';font-size:16px;font-weight:600;color:#f3f6f4}
+.step p{color:var(--muted);font-size:14.5px;margin:6px 0 0;max-width:60ch}
+.step code{
+ display:inline-block;margin-top:10px;background:var(--panel2);border:1px solid var(--line);
+ padding:8px 12px;border-radius:var(--radius);font-size:12.5px;color:var(--accent);white-space:pre-wrap
+}
+
+.advice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:8px}
+.advice{
+ background:var(--ink);padding:25px 24px;min-height:142px
+}
+.advice h3{font-family:'IBM Plex Sans';font-size:15px;font-weight:600;color:#f3f6f4}
+.advice .condition{font-family:'IBM Plex Mono';font-size:12px;color:var(--accent);margin-top:8px}
+.advice p{font-size:13.5px;color:var(--muted);margin:7px 0 0}
+
+.arch{
+ display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+ border:1px solid var(--line);margin-top:8px
+}
+.arch .box{background:var(--panel);padding:22px 18px;min-height:150px}
+.arch .num{font-family:'IBM Plex Mono';font-size:12px;color:var(--accent)}
+.arch h3{font-family:'IBM Plex Sans';font-size:15px;margin-top:12px}
+.arch p{font-size:13px;color:var(--muted);margin-top:7px}
+
+.forecast-card{
+ display:flex;gap:34px;align-items:center;flex-wrap:wrap;
+ background:var(--panel);border:1px solid var(--line);
+ border-left:3px solid var(--accent);padding:28px 30px;margin-top:8px
+}
+.forecast-card .big{font-family:'Source Serif 4',serif;font-size:42px;color:var(--accent)}
+.forecast-card .big .u{font-family:'IBM Plex Sans';font-size:14px;color:var(--muted);margin-left:6px}
+.forecast-card p{color:#cbd2d1;max-width:55ch;font-size:14.5px;margin:0}
+
+.note{
+ margin-top:20px;padding:17px 20px;border:1px solid var(--line);
+ background:var(--accent-soft);color:#cbd8d5;font-size:13.5px
+}
+.note strong{color:#edf2f0}
+
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:8px}
+.cards3 .c{background:var(--ink);padding:25px 22px}
+.cards3 .c h3{font-family:'IBM Plex Sans';font-size:15px;font-weight:600;color:#f3f6f4}
+.cards3 .c p{color:var(--muted);font-size:13.5px;margin-top:8px}
+
+footer{padding:48px 0 62px}
+.row-foot{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px}
+.stack{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.stack span{font-family:'IBM Plex Mono';font-size:12px;color:var(--muted);border:1px solid var(--line);padding:5px 9px;border-radius:var(--radius)}
+.fine{color:var(--muted);font-size:12.5px;margin-top:30px;max-width:90ch}
+.repo{font-size:14px;border-bottom:1px solid var(--sky);padding-bottom:2px;text-decoration:none}
+
+@media(max-width:760px){
+ .wrap{padding:0 22px}
+ .grid-2{grid-template-columns:1fr;gap:20px}
+ .advice-grid,.cards3{grid-template-columns:1fr}
+ .arch{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){.arch{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+<div class="wrap">
+<p class="kicker">Smart Weather Advisor · place-based weather intelligence</p>
+<h1 class="title">Weather data into <em>actionable advice.</em></h1>
+<p class="hero-sub">
+A lightweight weather application that turns a place name into current weather, precipitation,
+air-quality and UV information, practical advisory messages, and a short-term temperature forecast.
+Built as a Gradio application using live Open-Meteo data and Prophet forecasting.
+</p>
+<div class="stat-row">
+  <div class="stat"><div class="n accent">Live</div><div class="l">weather & air-quality data</div></div>
+  <div class="stat"><div class="n">24h</div><div class="l">future forecast horizon</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">advisory signals</div></div>
+  <div class="stat"><div class="n">1</div><div class="l">place-based user input</div></div>
+</div>
+</div>
+</header>
+
+<main>
+
+<section id="problem">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>From forecast to decision</h2>
+<p class="tag">What the app is designed to do</p>
+</div>
+<div class="content-col">
+<p>
+Weather APIs expose measurements and forecasts, but a user often needs a simpler answer:
+<strong>What should I do?</strong> Smart Weather Advisor combines several environmental signals
+and converts them into short, human-readable recommendations.
+</p>
+<p>
+The notebook implements this as a place-based application. A user enters a location such as
+New York, London, or Tokyo; the system geocodes the place, retrieves local weather and air-quality
+data, generates advisory messages, and produces a temperature forecast.
+</p>
+</div>
+</div>
+</section>
+
+<section id="inputs">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>What the app reads</h2>
+<p class="tag">Environmental signals</p>
+</div>
+<div class="content-col">
+<p>Current conditions and hourly information are retrieved from Open-Meteo using the geocoded latitude and longitude.</p>
+<div class="chip-groups">
+<div class="chip-group">
+<h3>Weather</h3>
+<div class="chips">
+<span class="chip">Temperature</span>
+<span class="chip">Wind speed</span>
+<span class="chip">Precipitation</span>
+<span class="chip">Weather code</span>
+</div>
+</div>
+<div class="chip-group">
+<h3>Air & exposure</h3>
+<div class="chips">
+<span class="chip">PM10</span>
+<span class="chip">UV index</span>
+</div>
+</div>
+<div class="chip-group">
+<h3>Forecast series</h3>
+<div class="chips">
+<span class="chip">Hourly timestamps</span>
+<span class="chip">Hourly temperature</span>
+<span class="chip">Local timezone</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="pipeline">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>The application pipeline</h2>
+<p class="tag">Input to advisory</p>
+</div>
+<div class="content-col">
+<div class="steps">
+<div class="step">
+<div class="idx">01</div>
+<div>
+<h3>Geocode the place</h3>
+<p>Nominatim converts the user-provided place name into latitude and longitude coordinates.</p>
+<code>place → latitude, longitude</code>
+</div>
+</div>
+<div class="step">
+<div class="idx">02</div>
+<div>
+<h3>Fetch current conditions</h3>
+<p>Open-Meteo provides current temperature, wind speed and weather code together with hourly precipitation and temperature data.</p>
+<code>Open-Meteo Forecast API</code>
+</div>
+</div>
+<div class="step">
+<div class="idx">03</div>
+<div>
+<h3>Fetch air quality</h3>
+<p>A second Open-Meteo endpoint supplies hourly PM10 and UV-index values for the same location and local timezone.</p>
+<code>Air Quality API · PM10 · UV index</code>
+</div>
+</div>
+<div class="step">
+<div class="idx">04</div>
+<div>
+<h3>Generate practical advice</h3>
+<p>Rule-based checks translate environmental values into messages such as hydration, warm clothing, umbrella, mask, and sunscreen guidance.</p>
+<code>measurements → advisory rules → message</code>
+</div>
+</div>
+<div class="step">
+<div class="idx">05</div>
+<div>
+<h3>Forecast temperature</h3>
+<p>Prophet is fitted to the hourly temperature series and used to generate an additional 24-hour forecast horizon.</p>
+<code>Prophet · daily seasonality · +24 h</code>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="advisory">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>Advisory engine</h2>
+<p class="tag">Transparent rule-based logic</p>
+</div>
+<div class="content-col">
+<p>
+The advisory layer is intentionally interpretable. Instead of a black-box recommendation model,
+each message is tied directly to a documented threshold in the notebook.
+</p>
+<div class="advice-grid">
+<div class="advice">
+<h3>Heat</h3>
+<div class="condition">temperature &gt; 30°C</div>
+<p>“It's hot! Stay hydrated.”</p>
+</div>
+<div class="advice">
+<h3>Cold</h3>
+<div class="condition">temperature &lt; 10°C</div>
+<p>“It's cold. Wear warm clothes.”</p>
+</div>
+<div class="advice">
+<h3>Wind</h3>
+<div class="condition">wind &gt; 20 km/h</div>
+<p>“Strong winds! Be careful outside.”</p>
+</div>
+<div class="advice">
+<h3>Rain</h3>
+<div class="condition">precipitation &gt; 0 mm</div>
+<p>“Rain expected. Carry an umbrella.”</p>
+</div>
+<div class="advice">
+<h3>Air quality</h3>
+<div class="condition">PM10 &gt; 50</div>
+<p>“Air quality is bad. Wear a mask.”</p>
+</div>
+<div class="advice">
+<h3>UV exposure</h3>
+<div class="condition">UV index &gt; 6</div>
+<p>“UV is high. Use sunscreen.”</p>
+</div>
+</div>
+<div class="note">
+<strong>Fallback:</strong> If none of the advisory conditions are triggered, the application returns
+“Weather looks fine today!” The notebook also catches errors in the advisory calculation so the application can continue returning a result.
+</div>
+</div>
+</div>
+</section>
+
+<section id="forecast">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>Temperature forecasting</h2>
+<p class="tag">Prophet time-series component</p>
+</div>
+<div class="content-col">
+<p>
+The forecasting component uses the real hourly temperature series returned by Open-Meteo.
+The timestamps are converted into Prophet's <span class="mono">ds</span> field and temperatures into
+<span class="mono">y</span>.
+</p>
+<div class="forecast-card">
+<div class="big">+24h<span class="u">forecast horizon</span></div>
+<p>
+A Prophet model with daily seasonality is fitted to the available hourly series.
+The application then creates 24 future hourly timestamps and predicts the corresponding temperature values.
+</p>
+</div>
+<div class="note">
+<strong>Interpretation:</strong> The notebook demonstrates forecasting functionality, but it does not report
+forecast-error metrics such as MAE, RMSE, or MAPE. Therefore this page does not claim a numerical forecast accuracy.
+</div>
+</div>
+</div>
+</section>
+
+<section id="architecture">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>Application architecture</h2>
+<p class="tag">A lightweight end-to-end prototype</p>
+</div>
+<div class="content-col">
+<div class="arch">
+<div class="box">
+<div class="num">01 · INPUT</div>
+<h3>Gradio UI</h3>
+<p>Place textbox and a single action button provide the user-facing interface.</p>
+</div>
+<div class="box">
+<div class="num">02 · LOCATION</div>
+<h3>Nominatim</h3>
+<p>Place names are resolved to geographic coordinates.</p>
+</div>
+<div class="box">
+<div class="num">03 · DATA</div>
+<h3>Open-Meteo</h3>
+<p>Weather and air-quality endpoints supply live environmental data.</p>
+</div>
+<div class="box">
+<div class="num">04 · INTELLIGENCE</div>
+<h3>Rules + Prophet</h3>
+<p>Advisory rules produce recommendations while Prophet generates the temperature forecast.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="engineering">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>Engineering details</h2>
+<p class="tag">Reliability improvements in the notebook</p>
+</div>
+<div class="content-col">
+<div class="cards3">
+<div class="c">
+<h3>Correct current-hour lookup</h3>
+<p>The application matches the current weather timestamp to the corresponding hourly forecast entry instead of always reading index 0.</p>
+</div>
+<div class="c">
+<h3>Timezone consistency</h3>
+<p>The air-quality request uses <span class="mono">timezone="auto"</span> so its hourly timestamps align with the forecast request.</p>
+</div>
+<div class="c">
+<h3>Robust weather icons</h3>
+<p>If custom GIF assets are missing, simple fallback icons are generated with Pillow so the interface still has an illustration.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="takeaways">
+<div class="wrap grid-2">
+<div class="label-col">
+<h2>What this demonstrates</h2>
+<p class="tag">From API integration to applied ML</p>
+</div>
+<div class="content-col">
+<div class="cards3">
+<div class="c">
+<h3>API-driven data pipeline</h3>
+<p>Combines geocoding, weather, and air-quality services into a single user workflow.</p>
+</div>
+<div class="c">
+<h3>Interpretable decision layer</h3>
+<p>Turns environmental measurements into transparent, threshold-based recommendations rather than opaque classifications.</p>
+</div>
+<div class="c">
+<h3>Time-series forecasting</h3>
+<p>Extends the application beyond current conditions with a Prophet-based hourly temperature forecast.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="wrap">
+<div class="row-foot">
+<div>
+<h2 style="font-size:20px">Smart Weather Advisor</h2>
+<div class="stack">
+<span>Python</span>
+<span>Gradio</span>
+<span>Open-Meteo</span>
+<span>Nominatim</span>
+<span>Prophet</span>
+<span>pandas</span>
+<span>scikit-learn</span>
+<span>matplotlib</span>
+<span>Pillow</span>
+</div>
+</div>
+<a class="repo" href="#" onclick="return false">View the notebook on GitHub</a>
+</div>
+<p class="fine">
+Built from the accompanying SmartWeather advisory notebook. The application uses external weather and air-quality APIs,
+transparent rule-based advisories, and Prophet for temperature forecasting. The page describes the implemented notebook workflow
+and does not imply forecast accuracy metrics that were not calculated in the source.
+</p>
+</div>
+</footer>
+
+</body>
+</html>
